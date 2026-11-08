@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import AddBikeForm from '@/components/AddBikeForm';
 import BikeCard from '@/components/BikeCard';
 import SalesHistory from '@/components/SalesHistory';
+import StatsDashboard from '@/components/StatsDashboard';
 
 interface Bike {
   bike_id: number;
@@ -16,7 +17,7 @@ interface Bike {
 export default function Home() {
   const [bikes, setBikes] = useState<Bike[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshSales, setRefreshSales] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(false);
 
   const fetchBikes = () => {
     fetch('http://localhost:5000/api/bikes')
@@ -37,17 +38,19 @@ export default function Home() {
 
   const handleBikeDeleted = (deletedId: number) => {
     setBikes(bikes.filter((bike) => bike.bike_id !== deletedId));
+    setRefreshTrigger(!refreshTrigger);
   };
 
   const handleBikeUpdated = (updatedBike: Bike) => {
     setBikes(
       bikes.map((bike) => (bike.bike_id === updatedBike.bike_id ? updatedBike : bike))
     );
+    setRefreshTrigger(!refreshTrigger);
   };
 
-  const handleSaleProcessed = () => {
+  const handleActionCompleted = () => {
     fetchBikes();
-    setRefreshSales(!refreshSales); // Triggers sales history refresh
+    setRefreshTrigger(!refreshTrigger);
   };
 
   return (
@@ -60,7 +63,11 @@ export default function Home() {
           Explore and manage our exclusive collection of high-performance super bikes
         </p>
 
-        <AddBikeForm onBikeAdded={fetchBikes} />
+        {/* Stats Dashboard Component */}
+        <StatsDashboard refreshTrigger={refreshTrigger} />
+
+        {/* Add Bike Form Component */}
+        <AddBikeForm onBikeAdded={handleActionCompleted} />
 
         <h2 className="text-2xl font-bold mb-6">Available Showroom Inventory</h2>
         
@@ -76,14 +83,14 @@ export default function Home() {
                 bike={bike} 
                 onDelete={handleBikeDeleted}
                 onUpdate={handleBikeUpdated}
-                onSale={handleSaleProcessed}
+                onSale={handleActionCompleted}
               />
             ))}
           </div>
         )}
 
         {/* Sales History Table Component */}
-        <SalesHistory key={String(refreshSales)} />
+        <SalesHistory refreshTrigger={refreshTrigger} />
       </div>
     </main>
   );

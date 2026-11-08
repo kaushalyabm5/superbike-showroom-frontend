@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import jsPDF from 'jspdf';
 
 interface Bike {
   bike_id: number;
@@ -14,7 +15,7 @@ interface BikeCardProps {
   bike: Bike;
   onDelete: (id: number) => void;
   onUpdate: (updatedBike: Bike) => void;
-  onSale: () => void; // Refresh list after a successful sale
+  onSale: () => void;
 }
 
 export default function BikeCard({ bike, onDelete, onUpdate, onSale }: BikeCardProps) {
@@ -31,6 +32,68 @@ export default function BikeCard({ bike, onDelete, onUpdate, onSale }: BikeCardP
   const [buyerName, setBuyerName] = useState('');
   const [buyerPhone, setBuyerPhone] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
+
+  // Function to generate and download PDF invoice
+  const generatePDFInvoice = (customerName: string, customerPhone: string) => {
+    const doc = new jsPDF();
+    const currentDate = new Date().toLocaleDateString();
+
+    // Header styling
+    doc.setFillColor(20, 20, 20);
+    doc.rect(0, 0, 210, 40, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SUPERBIKE SHOWROOM', 14, 25);
+
+    // Invoice Meta
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(10);
+    doc.text(`Date: ${currentDate}`, 150, 25);
+
+    // Bill To Section
+    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Customer Details:', 14, 60);
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Name: ${customerName}`, 14, 70);
+    doc.text(`Phone: ${customerPhone}`, 14, 78);
+
+    // Table Header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(14, 95, 182, 10, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.text('Item Description', 20, 102);
+    doc.text('Price ($)', 160, 102);
+
+    // Item Details
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${bike.brand} ${bike.model} (Superbike)`, 20, 115);
+    doc.text(`$${Number(bike.price).toLocaleString()}`, 160, 115);
+
+    // Divider Line
+    doc.setLineWidth(0.5);
+    doc.line(14, 130, 196, 130);
+
+    // Total Amount
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('Total Amount:', 120, 145);
+    doc.setTextColor(220, 38, 38);
+    doc.text(`$${Number(bike.price).toLocaleString()}`, 160, 145);
+
+    // Footer
+    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(10);
+    doc.text('Thank you for your business with Superbike Showroom!', 14, 180);
+
+    // Save PDF
+    doc.save(`Invoice_${bike.brand}_${bike.model}.pdf`);
+  };
 
   const handleDelete = async () => {
     if (!confirm(`Are you sure you want to delete ${bike.brand} ${bike.model}?`)) return;
@@ -94,12 +157,16 @@ export default function BikeCard({ bike, onDelete, onUpdate, onSale }: BikeCardP
       });
 
       if (response.ok) {
-        alert('Purchase successful! Stock updated.');
+        alert('Purchase successful! Generating PDF Invoice...');
+        
+        // Generate and download PDF receipt
+        generatePDFInvoice(buyerName, buyerPhone);
+
         setIsBuying(false);
         setBuyerName('');
         setBuyerPhone('');
         setBuyerEmail('');
-        onSale(); // Refresh inventory
+        onSale();
       } else {
         alert('Failed to process purchase.');
       }
@@ -111,7 +178,6 @@ export default function BikeCard({ bike, onDelete, onUpdate, onSale }: BikeCardP
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl hover:border-red-500 transition-all flex flex-col justify-between">
       {isEditing ? (
-        // Edit Form
         <form onSubmit={handleUpdate} className="flex flex-col gap-3">
           <h4 className="text-sm font-bold text-red-400">Edit Bike Details</h4>
           <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} className="bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white" placeholder="Brand" />
@@ -124,19 +190,17 @@ export default function BikeCard({ bike, onDelete, onUpdate, onSale }: BikeCardP
           </div>
         </form>
       ) : isBuying ? (
-        // Buy / Checkout Form
         <form onSubmit={handleBuy} className="flex flex-col gap-3">
           <h4 className="text-sm font-bold text-green-400">Customer Checkout</h4>
           <input type="text" value={buyerName} onChange={(e) => setBuyerName(e.target.value)} className="bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white" placeholder="Customer Name" required />
           <input type="text" value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value)} className="bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white" placeholder="Phone Number" required />
           <input type="email" value={buyerEmail} onChange={(e) => setBuyerEmail(e.target.value)} className="bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white" placeholder="Email (Optional)" />
           <div className="flex gap-2 mt-2">
-            <button type="submit" className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2 px-3 rounded">Confirm Buy</button>
+            <button type="submit" className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2 px-3 rounded">Confirm & Download Invoice</button>
             <button type="button" onClick={() => setIsBuying(false)} className="bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold py-2 px-3 rounded">Cancel</button>
           </div>
         </form>
       ) : (
-        // Normal View
         <div>
           <div className="flex justify-between items-start">
             <span className="text-xs font-semibold uppercase tracking-wider text-red-400 bg-red-950/50 px-3 py-1 rounded-full">
