@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import AddBikeForm from '@/components/AddBikeForm';
 import BikeCard from '@/components/BikeCard';
+import SalesHistory from '@/components/SalesHistory';
 
 interface Bike {
   bike_id: number;
@@ -15,6 +16,7 @@ interface Bike {
 export default function Home() {
   const [bikes, setBikes] = useState<Bike[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshSales, setRefreshSales] = useState(false);
 
   const fetchBikes = () => {
     fetch('http://localhost:5000/api/bikes')
@@ -43,6 +45,11 @@ export default function Home() {
     );
   };
 
+  const handleSaleProcessed = () => {
+    fetchBikes();
+    setRefreshSales(!refreshSales); // Triggers sales history refresh
+  };
+
   return (
     <main className="min-h-screen bg-gray-950 text-white p-8">
       <div className="max-w-6xl mx-auto">
@@ -69,11 +76,14 @@ export default function Home() {
                 bike={bike} 
                 onDelete={handleBikeDeleted}
                 onUpdate={handleBikeUpdated}
-                onSale={fetchBikes}
+                onSale={handleSaleProcessed}
               />
             ))}
           </div>
         )}
+
+        {/* Sales History Table Component */}
+        <SalesHistory key={String(refreshSales)} />
       </div>
     </main>
   );
