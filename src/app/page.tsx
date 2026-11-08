@@ -69,6 +69,7 @@ export default function Home() {
                 bike={bike} 
                 onDelete={handleBikeDeleted}
                 onUpdate={handleBikeUpdated}
+                onSale={fetchBikes}
               />
             ))}
           </div>
